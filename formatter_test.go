@@ -286,3 +286,43 @@ func TestCycle(t *testing.T) {
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
+
+func TestStructFieldTags1(t *testing.T) {
+	type testFieldTagCase struct {
+		tc   interface{}
+		want string
+	}
+	type testFieldTagT struct {
+		z    string `pretty:"-"`
+		x, y int
+	}
+	type testFieldTagT2 struct {
+		x, y int `pretty:"-"`
+		z    string
+	}
+	type testFieldTagT3 struct {
+		x, y    int
+		private string `pretty:"-"`
+		a, b, c int
+	}
+	type testFieldTagT4 struct {
+		fields []interface{}
+	}
+	for _, tc := range []testFieldTagCase{
+		{tc: testFieldTagT{x: 1, y: 2, z: "ignored"}, want: `pretty.testFieldTagT{x:1, y:2}`},
+		{tc: testFieldTagT2{x: 1, y: 2, z: "displayed"}, want: `pretty.testFieldTagT2{z:"displayed"}`},
+		{tc: testFieldTagT3{x: 1, y: 2, private: "displayed", a: 42, b: 3, c: 4}, want: `pretty.testFieldTagT3{x:1, y:2, a:42, b:3, c:4}`},
+		{tc: testFieldTagT4{fields: []interface{}{testFieldTagT3{x: 1, y: 2, private: "displayed", a: 42, b: 3, c: 4}}}, want: `pretty.testFieldTagT4{
+    fields: {
+        pretty.testFieldTagT3{x:1, y:2, a:42, b:3, c:4},
+    },
+}`},
+	} {
+		got := Sprint(tc.tc)
+		if got != tc.want {
+			t.Logf("Got:    %q", got)
+			t.Logf("Wanted: %q", tc.want)
+			t.Fail()
+		}
+	}
+}
